@@ -1,0 +1,8 @@
+shapely==1.7.1
+numpy==1.20.2
+pandas==1.3.4
+geopandas==0.8.1
+matplotlib
+networkx
+geovoronoi
+requests
