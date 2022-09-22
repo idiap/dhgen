@@ -23,7 +23,7 @@ An (approximation of the) Steiner tree can be created using:
 
 You can use `pip` to install this package, e.g. with:
 
-```pip install git+https://gitlab.idiap.ch/energy/dhgen.git```
+```pip install git+https://github.com/idiap/dhgen.git```
 
 For further development, download the repository, then install it in editable mode:
 
