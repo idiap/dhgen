@@ -2,6 +2,8 @@
 
 **DHgeN** is a Python module for generating District Heating Networks layouts.
 
+![DhgeN schematic](dhgen.png)
+
 It has been conceived to work with the following open datasets available in Switzerland through the [GeoAdmin's REST services](https://api3.geo.admin.ch/services/sdiservices.html):
 
 - the Swiss Federal Register of Buildings and Dwellings (RegBL) `ch.bfs.gebaeude_wohnungs_register` 
@@ -18,6 +20,8 @@ An (approximation of the) Steiner tree can be created using:
 
 - NetworkX integrated algorithm
 - the [Hušek et al. model](https://github.com/goderik01/PACE2018)
+
+Additional information can be found in the conference paper presented at the [EUROSUN 2022 Conference](#citation). 
 
 ## Installation
 
@@ -42,7 +46,7 @@ docker run dhgen python examples/generate_dhn.py
 ```
 
 
-## Citation
+## <a name="citation"></a>Citation
 
 DHgeN is free to use. You are kindly invited to acknowledge its use by citing it in a research paper you are writing, reports, and/or other applicable materials.
 When available (pending review, expected publication in January 2023), please cite the following paper:
@@ -50,11 +54,13 @@ When available (pending review, expected publication in January 2023), please ci
     @inproceedings{peronato_dhgen_2022,
     location = {Kassel, Germany},
     title = {{DHgeN}: Automated Generation of District Heating Network Layouts for Feasibility Studies},
-    eventtitle = {{EuroSun}},
+    eventtitle = {{EuroSun2022}},
+    booktitle = {Pending review},
     author = {Peronato, Giuseppe and Kämpf, Jérôme Henri},
     date = {2022}
     }
 
+The pre-print (authors' version before review) can be found in [Idiap's publication repository](http://publications.idiap.ch/index.php/publications/show/4871).
 
 ## License
 
