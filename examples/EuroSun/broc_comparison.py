@@ -29,7 +29,6 @@ where a DHN is currently in operation.
 import os
 import geopandas as gpd
 from dhgen import nx_to_gdf, delisting, generate_dhn, setup_graph, apply_models, geoadmin_to_gdf
-from matplotlib import pyplot as plt
 
 BOUNDS = [2573626,1161155,2574255,1161894] # Broc
 
@@ -63,7 +62,7 @@ ROAD_WEIGHT = 0.5
 SEED = 42
 
 if __name__ == "__main__":
-    
+    from matplotlib import pyplot as plt
     # Case 1a
     print("Generating a grid-based layout...")
     dhn_grid_graph = setup_graph(BOUNDS,

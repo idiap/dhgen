@@ -32,8 +32,10 @@ dhn = generate_dhn(BOUNDS,
                     heating_stations=HEATING_STATIONS,
                     add_footprints=False,
                     add_roads=False,
-                    model="networkx",
+                    model="kou",
                     )
 
 stations, pipes = nx_to_gdf(dhn)
-pipes.plot(column="power",legend=True, legend_kwds={'label': "kW"})
+
+if __name__ == "__main__":
+    pipes.plot(column="power",legend=True, legend_kwds={'label': "kW"})

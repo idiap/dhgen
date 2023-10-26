@@ -98,6 +98,7 @@ def geoadmin_to_gdf(parameters: dict=PARAMETERS, delist=True, service = SERVICE)
         logging.info("Querying layers {}".format(pars["layers"]))
     if "layer" in pars.keys():
         logging.info("Querying layer {}".format(pars["layer"]))
+        
     while records > 0:
         if total_records > 0:
             pars["offset"] = total_records
@@ -119,9 +120,14 @@ def geoadmin_to_gdf(parameters: dict=PARAMETERS, delist=True, service = SERVICE)
             else:
                 return ""
             
-        hasList = (gdf.applymap(type) == list).any()
+        hasList = (gdf.drop("geometry",axis=1).applymap(type) == list).any()
         for col in hasList.loc[hasList].index:
             gdf[col] = gdf.apply(lambda x:",".join(delist(x[col])),axis=1)
+            
+    is_dupl = gdf.drop("properties",axis=1).duplicated()
+    if is_dupl.sum() > 0:
+        logging.warning(f"{is_dupl.sum()} duplicated records have been removed.")
+        gdf = gdf.loc[~is_dupl]
             
     return gdf
 

@@ -46,9 +46,10 @@ class SimpleNetworkTestCase(unittest.TestCase):
         
         stations, pipes = nx_to_gdf(generate_dhn.dhn)
         
-        self.assertEqual(len(pipes),110)
-        self.assertAlmostEqual(pipes.length.sum(), 1162, delta=0.5)
-        self.assertEqual(abs(stations["peak"].min()),545)
+        tolerance = 0.1 # 10% tolerance, as data from the API can change
+        self.assertAlmostEqual(len(pipes),110, delta=110*tolerance)
+        self.assertAlmostEqual(pipes.length.sum(), 1162, delta=1162*tolerance)
+        self.assertAlmostEqual(abs(stations["peak"].min()),545,delta=545*tolerance)
         
     def test_generate_dhn_file(self):
         """Test "generate_dhn_file.py"."""
@@ -88,5 +89,5 @@ class SimpleNetworkTestCase(unittest.TestCase):
         self.assertAlmostEqual(pipes.length.sum(),4371,delta=0.5)
         self.assertEqual(abs(stations["peak"].min()),2628)
         
-
-unittest.main()
+if __name__ == "__main__":
+    unittest.main()

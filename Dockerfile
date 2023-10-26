@@ -17,10 +17,12 @@
 # You should have received a copy of the GNU General Public License
 # along with DHgeN. If not, see <http://www.gnu.org/licenses/>
 
-FROM python:3.8-slim-buster
+FROM python:3.8-slim
 
 RUN apt-get update \
-&& apt-get install -y --no-install-recommends git build-essential gcc mono-mcs libboost-all-dev \
+&& apt-get install -y --no-install-recommends git \
+build-essential gcc mono-mcs libboost-all-dev \
+libgdal-dev \
 && apt-get purge -y --auto-remove \
 && rm -rf /var/lib/apt/lists/*
 
@@ -30,5 +32,4 @@ RUN cp /PACE2018/bin/star_contractions_test /bin/star_contractions_test
 
 COPY . DHgeN
 WORKDIR /DHgeN
-RUN pip3 install -r requirements.txt
-RUN pip3 install -e .
+RUN pip3 install .[test]

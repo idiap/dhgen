@@ -17,11 +17,33 @@
 # You should have received a copy of the GNU General Public License
 # along with DHgeN. If not, see <http://www.gnu.org/licenses/>
 
-[metadata]
-name = "dhgen"
-version = "0.0.1"
-
 [build-system]
 # Minimum requirements for the build system to execute.
-requires = ["setuptools", "wheel", "networkx>=2.6.0", "geopandas", "pandas"]
+requires = [
+"setuptools>=61.0.0",
+"wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "dhgen"
+version = "0.0.2"
+requires-python = ">=3.7"
+dependencies = [
+	"networkx>=2.6",
+	"geopandas",
+	"requests",
+]
+
+[project.optional-dependencies] 
+optional = [
+	"geovoronoi",
+	"matplotlib",
+]
+test = [
+# harcoded versions for testing/reproducibility
+"geopandas==0.12.2",
+"pandas==1.5.3",
+"networkx==3.0",
+"requests==2.28.2",
+]
+

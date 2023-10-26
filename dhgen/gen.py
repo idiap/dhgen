@@ -33,7 +33,6 @@ from shapely.geometry import box, Point, LineString, Polygon, MultiPoint
 from math import atan2, degrees, tan, radians
 from shapely import affinity
 from networkx.algorithms import approximation as approx
-from geovoronoi import voronoi_regions_from_coords
 import os
 import logging
 import signal
@@ -41,6 +40,7 @@ import time
 import subprocess
 import uuid
 import fiona
+import pickle
 
 logging.basicConfig(level=logging.INFO)
 REPOSITORY_DIR = os.path.dirname(os.getcwd())
@@ -85,7 +85,7 @@ def nx_grid(bounds, width, height, rotation=0):
 def gdf_to_nx(gdf, add_edge_attributes = False):
     """Create a nx from a line gdf"""
     points = []
-    lines = gdf.explode()
+    lines = gdf.explode(index_parts=True)
     i = 0
     net = nx.Graph()
     for l, line in lines.iterrows():
@@ -355,7 +355,8 @@ def add_gdf_to_nx(graph, gdf,
     for n, point in gdf.iterrows():
         # Check first whether the geometry to add is already in the graph
         if point["geometry"] in nodes["geometry"]:
-            raise ValueError("Connecting node with the same geometry") 
+            logging.warning(f'Connecting node {point["node"]} with existing geometry') 
+            #TODO avoid creating node with the same geometry
             
         # Add each point to the graph            
         graph.add_node(point["node"],
@@ -378,14 +379,18 @@ def add_gdf_to_nx(graph, gdf,
                                              weigh_connections=weigh_connections,
                                              connect_only_to_main=connect_only_to_main)
                         
+            int_node_found = False
             # Add intersection node
             if closest_edge["int"] in nodes["geometry"]:
                 # The intersection node is already in the graph
                 int_node = nodes.loc[nodes["geometry"] == closest_edge["int"],"node"].values[0]
+                int_node_found = True
                 # But no edge is connected to that: we can safely use to split the existing edge
                 if graph.degree(int_node) != 0:
-                    raise ValueError("Connecting node with the same geometry") 
-            else:
+                    logging.warning(f"Creating intersection {int_node} with existing geometry")
+                    #TODO avoid creating node with the same geometry
+                    int_node_found = False
+            if not int_node_found:
                 # We need to add the node and its perpendicular edge
                 int_node = "perpint_" + str(uuid.uuid4())
                 graph.add_node(int_node,geometry=closest_edge["int"])
@@ -444,10 +449,11 @@ def densify_geometry(line_geometry, step):
          
      # Modification of the original solution to add the last point
      xy.append((line_geometry.coords[-1][0],line_geometry.coords[-1][1]))
-
-     new_line=LineString(xy) # Here, we finally create a new line with densified points.
-
-     return new_line
+     if len(xy) == 0  or len(xy) > 1:
+         new_line=LineString(xy) # Here, we finally create a new line with densified points.
+         return new_line
+     else:
+         logging.warning("Found invalid line geometry... skipping")
 
 
 def connect_graphs(n1, n2, max_distance=25, add_length=True):
@@ -538,8 +544,15 @@ def intersect_graphs(n1, n2):
     n2_pts, n2_lines = nx_to_gdf(n2)
     all_pts = pd.concat([n1_pts,n2_pts])
     all_inter = []
+    logging.warning('Warnings in shapely intersection method are currently ignored...')
     for n2i, n2_seg in n2_lines.iterrows():
+        # Suppress warnings in Shapely for empty intersections until fixed
+        # "RuntimeWarning: invalid value encountered in intersection"
+        initial_settings = np.seterr()
+        np.seterr(invalid="ignore")
         inter = n1_lines.intersection(n2_seg.geometry)
+        # Reset initial error settings
+        np.seterr(**initial_settings)
         inter = inter[~inter.is_empty] 
         for n1i, inte in pd.DataFrame(inter).iterrows():
             inter_dict = {}
@@ -561,7 +574,8 @@ def intersect_graphs(n1, n2):
     
     Gcc = sorted(nx.connected_components(n3), key=len, reverse=True)
     if len(Gcc) > 1:
-        nx.write_gpickle(n3, "subgraphs.p")
+        with open('subgraphs.p', 'wb') as f:
+            pickle.dump(n3, f)
         logging.warning("{} subgraphs... keeping only the largest one. A pickled nx graph 'subgraphs.p' has been saved.".format(len(Gcc)))
         n3 = n3.subgraph(Gcc[0])
     return nx.Graph(n3)
@@ -602,6 +616,13 @@ def api_parameters_to_geometry(api_parameters):
 def import_substations(api_parameters,gpkg_path=GEOADMIN_CACHE_FILE,limit_egids=[],layer=None):
     """Load substations data"""
     substations = import_geometry(api_parameters,gpkg_path)
+    
+    is_dupl = substations.geometry.duplicated()
+    if is_dupl.sum() > 0:
+        logging.warning(f"{is_dupl.sum()} substations have the same geometry:"
+                        "an offset is applied")
+        substations.loc[is_dupl,"geometry"] = substations.loc[is_dupl].translate(xoff=0.5,
+                                                                                 yoff=0.5)
 
     substations["isConnected"] = True
     substations["isHeatingStation"] = False
@@ -659,7 +680,7 @@ def create_stations(substations, heating_stations=[]):
 
 def create_road_network(roads, weight, densify_step = 5):
     """Densify road geometry and create a road network assigning a weight."""
-    roads_dense = roads.copy().explode().reset_index()
+    roads_dense = roads.copy().explode(index_parts=True).reset_index()
     logging.info("Densifying road geometry")
     roads_dense["geometry"] = roads_dense["geometry"].apply(densify_geometry,
                                                               step=densify_step)
@@ -699,8 +720,8 @@ def delisting(orig_df):
             return [str(s) for s in mylist]
         else:
             return [str(mylist)]
-    hasList = (df.applymap(type) == list).any()
-    hasTuple = (df.applymap(type) == tuple).any()
+    hasList = (df.drop("geometry",axis=1).applymap(type) == list).any()
+    hasTuple = (df.drop("geometry",axis=1).applymap(type) == tuple).any()
     for col in hasList.loc[hasList].index:
         df[col] = df.apply(lambda x:",".join(delist(x[col])),axis=1)
     for col in hasTuple.loc[hasTuple].index:
@@ -749,7 +770,7 @@ def apply_husek(graph, wait_solution=5, seed=None):
     edge_list["target_"] = edge_list["target"].astype(str).replace(nodes_map)
     
     terminals = nodes_data.loc[nodes_data.isConnected.fillna(False), :]
-        
+
     solution_fn = "network.ost"
     if not os.path.exists(solution_fn):
         solution_fn = "network.ost.temp"
@@ -785,6 +806,7 @@ def apply_husek(graph, wait_solution=5, seed=None):
                              )
         time.sleep(wait_solution)
         os.killpg(p.pid, signal.SIGTERM)
+        p.wait()
         logging.info("Waiting for results...")
         time.sleep(2+len(nodes)//1000)
         infile.close()
@@ -806,11 +828,12 @@ def fours_to_threes(G, distance=2):
         if G.degree[node] == 4:
             fours.append(node)
     
-    nodes, edges = nx_to_gdf(G)
-    if "weight" not in edges.columns:
-        edges["weight"] = 1
+
     for node in fours:
-        edges_ = edges.loc[(edges["start"] == node) | (edges["end"] == node),:].copy()
+        # Get edges starting from the central node
+        nodes, edges_ = nx_to_gdf(nx.edge_subgraph(G,G.edges(node)))
+        if "weight" not in edges_.columns:
+            edges_["weight"] = 1
         edges_["startc"] = edges_["start"]
         edges_["endc"] = edges_["end"]
         
@@ -881,6 +904,7 @@ def remove_intersecting_edges(G, geometry):
 
 def voronoi_nx(pts_gdf, bounds):
     """Create a voronoi graph"""
+    from geovoronoi import voronoi_regions_from_coords
     G = nx.Graph()
     mybox = box(*bounds)
     region_polys, region_pts = voronoi_regions_from_coords(pts_gdf["geometry"], mybox)
@@ -1002,6 +1026,7 @@ def setup_graph(analysis_area=[],
         assert nx.is_connected(graph) == True
     
     logging.info('Adding stations to graph')
+    
     graph = add_gdf_to_nx(graph,stations.loc[stations["isConnected"] & ~stations["isHeatingStation"],:],
                           max_distance = 2*(grid_size["height"]+grid_size["width"]), # 4 times grid size
                           weigh_connections=True,
@@ -1039,11 +1064,20 @@ def apply_models(graph,
     if model == "husek":
         st = apply_husek(graph,
                          wait_solution,
-                         seed)
-    elif model == "networkx":
+                         seed
+                         )
+    elif model == "kou" or model == "mehlhorn":
+        if int(nx.__version__[0]) >= 3:
+            kwargs = {"method": model}
+        else:
+            kwargs = {}
+            if model == "mehlhorn":
+                logging.warning("Melhorn method not available for NetworkX<3.0: using Kou.")
+  
         st = approx.steinertree.steiner_tree(graph,
                                              [x for x,y in graph.nodes(data=True) if y.get('isConnected',False)==True],
-                                             weight="priority"
+                                             weight="priority",
+                                             **kwargs
                                              )
         st = nx.Graph(st) # unfreeze graph
     else:

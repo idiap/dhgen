@@ -45,20 +45,22 @@ docker build . -t dhgen
 docker run dhgen python examples/generate_dhn.py
 ```
 
-
 ## <a name="citation"></a>Citation
 
 DHgeN is free to use. You are kindly invited to acknowledge its use by citing it in a research paper you are writing, reports, and/or other applicable materials.
 When available (pending review, expected publication in January 2023), please cite the following paper:
 
+
     @inproceedings{peronato_dhgen_2022,
-    location = {Kassel, Germany},
-    title = {{DHgeN}: Automated Generation of District Heating Network Layouts for Feasibility Studies},
-    eventtitle = {{EuroSun2022}},
-    booktitle = {Pending review},
-    author = {Peronato, Giuseppe and Kämpf, Jérôme Henri},
-    date = {2022}
+        location = {Kassel, Germany},
+        title = {{DHgeN}: Automated Generation of District Heating Network Layouts for Feasibility Studies},
+        doi = {doi:10.18086/eurosun.2022.16.10},
+        eventtitle = {{EuroSun} 2022},
+        booktitle = {Proceedings of {EuroSun} 2022},
+        author = {Peronato, Giuseppe and Kämpf, Jérôme H.},
+        date = {2022}
     }
+
 
 The pre-print (authors' version before review) can be found in [Idiap's publication repository](http://publications.idiap.ch/index.php/publications/show/4871).
 

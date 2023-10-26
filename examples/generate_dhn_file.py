@@ -44,5 +44,7 @@ dhn = generate_dhn(BOUNDS,
                     seed=SEED)
 
 stations, pipes = nx_to_gdf(dhn)
-pipes.plot(column="power",legend=True, legend_kwds={'label': "kW"})
+
+if __name__ == "__main__":
+    pipes.plot(column="power",legend=True, legend_kwds={'label': "kW"})
 

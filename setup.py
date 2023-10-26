@@ -20,7 +20,7 @@
 from setuptools import setup
 
 setup(name='DHgeN',
-version='0.0.1',
+version='0.0.2',
 description='A module to generate DHN layouts',
 url='#',
 author='Giuseppe Peronato',
